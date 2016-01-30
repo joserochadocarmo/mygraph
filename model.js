@@ -13,76 +13,52 @@ function orderBy(args) {
   })
   return order;
 }
-/**
-Retorna uma listagem
-**/
-function query(table,args) {
-  let _sql;
-  _sql = _.isEmpty(args.orderBy) ? limit(args) : orderBy(args);
 
+function where(args) {
+  let where = _.isEmpty(args.orderBy) ? limit(args) : orderBy(args);
   let clauses = _.omit(args,'limit','offset','orderBy','where');
 
   _.forEach(clauses,function(value, key) {
     if(_.isEmpty(args.where)) args.where=[];
     args.where.push({'column':_.snakeCase(key),'operator':'=','value':value});
-  })
+  });
 
   _.forEach(args.where, function(clause) {
-    _sql = _sql.where(_.snakeCase(clause.column),clause.operator,clause.value.toString());
-  })
+    let operator = clause.operator;
+    if(operator != 'BETWEEN' && operator != 'IN')
+      clause.value = clause.value.toString();
+    where = where.where(_.snakeCase(clause.column), operator , clause.value);
+  });
+  return where;
+}
 
-  let from_ = _sql.from(table.tableName);
-
-  return from_;
+/**
+Retorna uma listagem
+**/
+function from(table,args) {
+  return where(args).from(table.tableName);
 }
 /**
 Retorna um unico registro
 **/
 function first(tableName,args) {
-  return  query(tableName,args).first();
+  return from(tableName,args).first();
 }
 
 function all(tableName,args) {
-  return  query(tableName,args).select();
+  return from(tableName,args).select();
 }
 
-const Pessoa = ({
-  tableName: 'comum.pessoa',
-  idAttribute: 'id_pessoa',
-  get: function(args) {
-    return all(this,args);
+const Query = ({
+  getAll: function(table,args) {
+    return all(table,args);
   },
-  getAlunos: function(args) {
-    return all(Aluno,args);
+  get: function(table,args) {
+    return first(table,args);
   },
-  alunosCount: function() {
+  //TODO fazer o count
+  count: function() {
     //return db('alunos').where({classroom_id: this.get('id')}).count('id').then((total) => total[0].count)
   }
 });
-
-const Aluno = ({
-  tableName: 'public.discente',
-  idAttribute: 'id_discente',
-  get: function(args) {
-    return all(this,args);
-  },
-  getPessoa: function(args) {
-    return first(Pessoa,args);
-  },
-  getCurso: function(args) {
-    return first(Curso,args);
-  }
-});
-
-const Curso = ({
-  tableName: 'public.curso',
-  idAttribute: 'id_curso',
-  get: function(args) {
-    return all(this,args);
-  },
-  getAlunos: function(args) {
-    return all(Aluno,args);
-  }
-});
-
-export {Pessoa, Curso, Aluno};
+export {Query};

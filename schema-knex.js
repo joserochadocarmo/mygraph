@@ -10,7 +10,8 @@ import {
 } from 'graphql';
 import {orderByType} from './customTypes/orderByType';
 import {whereType} from './customTypes/whereType';
-import {Curso,Aluno,Pessoa} from './model';
+import {Curso,Aluno,Pessoa,Query} from './model';
+import {tables} from './mapping';
 
 const CursoType = new GraphQLObjectType({
   name: 'Curso',
@@ -43,9 +44,8 @@ const CursoType = new GraphQLObjectType({
               type: new GraphQLList(orderByType)
           }
         },
-        resolve (curso,args) {
-          args[Curso.idAttribute]=curso.id_curso;
-          return Curso.getAlunos(args);
+        resolve (curso) {
+          return Query.getAll(tables.Aluno,{[tables.Curso.idAttribute]: curso.id_curso});
         }
       }
     };
@@ -89,9 +89,8 @@ const AlunoType = new GraphQLObjectType({
               type: new GraphQLList(orderByType)
           }
         },
-        resolve (aluno,args) {
-          args[Curso.idAttribute]=aluno.id_curso
-          return Aluno.getCurso(args);
+        resolve (aluno) {
+          return Query.get(tables.Curso,{[tables.Curso.idAttribute]: aluno.id_curso});
         }
       },
       pessoa: {
@@ -108,9 +107,8 @@ const AlunoType = new GraphQLObjectType({
               type: new GraphQLList(orderByType)
           }
         },
-        resolve (aluno,args) {
-          args[Pessoa.idAttribute]=aluno.id_pessoa;
-          return Aluno.getPessoa(args)
+        resolve (aluno) {
+          return Query.get(tables.Pessoa,{[tables.Pessoa.idAttribute]: aluno.id_pessoa});
         }
       }
     };
@@ -155,14 +153,14 @@ const PessoaType = new GraphQLObjectType({
       aluno: {
         type: new GraphQLList(AlunoType),
         resolve (pessoa) {
-          return Pessoa.getAlunos({[Pessoa.idAttribute]: pessoa.id_pessoa});
+          return Query.getAll(tables.Aluno,{[tables.Pessoa.idAttribute]: pessoa.id_pessoa});
         }
       }
     };
   }
 });
 
-const Query = new GraphQLObjectType({
+const RootQuery = new GraphQLObjectType({
   name: 'Query',
   description: 'Root query object',
   fields: () => {
@@ -195,7 +193,7 @@ const Query = new GraphQLObjectType({
           }
         },
         resolve (root, args, ast) {
-          return Pessoa.get(args);
+          return Query.getAll(tables.Pessoa,args);
         }
       },
       alunos: {
@@ -219,7 +217,7 @@ const Query = new GraphQLObjectType({
         },
         type: new GraphQLList(AlunoType),
         resolve (root, args) {
-          return Aluno.get(args);
+          return Query.getAll(tables.Aluno,args);
         }
       },
       cursos: {
@@ -240,7 +238,7 @@ const Query = new GraphQLObjectType({
         },
         type: new GraphQLList(CursoType),
         resolve (root, args) {
-          return Curso.get(args);
+          return Query.getAll(tables.Curso,args);
         }
       }
     };
@@ -278,7 +276,7 @@ const Mutation = new GraphQLObjectType({
 });
 
 const Schema = new GraphQLSchema({
-  query: Query,
+  query: RootQuery,
   mutation: Mutation
 });
 
