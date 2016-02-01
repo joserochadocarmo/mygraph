@@ -10,8 +10,9 @@ import {
 } from 'graphql';
 import {orderByType} from './customTypes/orderByType';
 import {whereType} from './customTypes/whereType';
-import {Curso,Aluno,Pessoa,Query} from './model';
+import {Query} from './model';
 import {tables} from './mapping';
+import myCache from './cache';
 
 const CursoType = new GraphQLObjectType({
   name: 'Curso',
@@ -46,6 +47,18 @@ const CursoType = new GraphQLObjectType({
         },
         resolve (curso) {
           return Query.getAll(tables.Aluno,{[tables.Curso.idAttribute]: curso.id_curso});
+        }
+      },
+      count: {
+        args: {
+          column: {
+            description: 'Informe a coluna a ser contada - Ex: column:"cpf"',
+            type: GraphQLString
+          }
+        },
+        type: GraphQLInt,
+        resolve (aluno,args,ast) {
+          return Query.count(tables.Curso,args)
         }
       }
     };
@@ -110,6 +123,19 @@ const AlunoType = new GraphQLObjectType({
         resolve (aluno) {
           return Query.get(tables.Pessoa,{[tables.Pessoa.idAttribute]: aluno.id_pessoa});
         }
+      },
+      count: {
+        args: {
+          column: {
+            description: 'Informe a coluna a ser contada - Ex: column:"cpf"',
+            type: GraphQLString
+          }
+        },
+        type: GraphQLInt,
+        resolve (aluno,args,ast) {
+          console.log(ast);
+          return Query.count(tables.Aluno,args)
+        }
       }
     };
   }
@@ -155,6 +181,29 @@ const PessoaType = new GraphQLObjectType({
         resolve (pessoa) {
           return Query.getAll(tables.Aluno,{[tables.Pessoa.idAttribute]: pessoa.id_pessoa});
         }
+      },
+      count: {
+        args: {
+          column: {
+            description: 'Informe a coluna a ser contada - Ex: column:"cpf"',
+            type: GraphQLString
+          }
+        },
+        type: GraphQLInt,
+        resolve (aluno,args,ast) {
+          // return Query.count(tables.Pessoa,args);
+          // console.log(ast.operation.loc.source.body);
+          let countValueCache = myCache.get(ast.operation.loc.source.body);
+          if(countValueCache==undefined){
+            return Query.count(tables.Pessoa,args).then(value=>{
+              myCache.set(ast.operation.loc.source.body, value);
+              console.log("setcache"+ myCache);
+              return value;
+            });
+          }
+          console.log("getcache");
+          return countValueCache;
+        }
       }
     };
   }
@@ -173,9 +222,6 @@ const RootQuery = new GraphQLObjectType({
           },
           cpfCnpj: {
             type: GraphQLInt
-          },
-          email: {
-            type: GraphQLString
           },
           limit: {
             type: GraphQLInt

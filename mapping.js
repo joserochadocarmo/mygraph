@@ -4,5 +4,4 @@ module.exports = {
     Aluno: {tableName: 'discente', idAttribute: 'id_discente'},
     Curso: {tableName: 'curso', idAttribute: 'id_curso'}
   }
-
 };
