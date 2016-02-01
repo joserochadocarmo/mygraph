@@ -10,6 +10,7 @@ import {
 } from 'graphql';
 import {orderByType} from './customTypes/orderByType';
 import {whereType} from './customTypes/whereType';
+import getFieldASTs from './customTypes/selectType';
 import {Query} from './model';
 import {tables} from './mapping';
 import myCache from './cache';
@@ -102,8 +103,10 @@ const AlunoType = new GraphQLObjectType({
               type: new GraphQLList(orderByType)
           }
         },
-        resolve (aluno) {
-          return Query.get(tables.Curso,{[tables.Curso.idAttribute]: aluno.id_curso});
+        resolve (aluno,args,info) {
+          args[tables.Curso.idAttribute]= aluno.id_curso;
+          args.select = getFieldASTs(info);
+          return Query.get(tables.Curso,args);
         }
       },
       pessoa: {
@@ -120,8 +123,10 @@ const AlunoType = new GraphQLObjectType({
               type: new GraphQLList(orderByType)
           }
         },
-        resolve (aluno) {
-          return Query.get(tables.Pessoa,{[tables.Pessoa.idAttribute]: aluno.id_pessoa});
+        resolve (aluno,args,info) {
+          args[tables.Pessoa.idAttribute]= aluno.id_pessoa;
+          args.select = getFieldASTs(info);
+          return Query.get(tables.Pessoa,args);
         }
       },
       count: {
@@ -262,7 +267,10 @@ const RootQuery = new GraphQLObjectType({
           }
         },
         type: new GraphQLList(AlunoType),
-        resolve (root, args) {
+        resolve (root, args,info) {
+          args.select = getFieldASTs(info);
+          args.select.push(tables.Pessoa.idAttribute);
+          args.select.push(tables.Curso.idAttribute);
           return Query.getAll(tables.Aluno,args);
         }
       },

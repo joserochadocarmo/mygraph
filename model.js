@@ -14,7 +14,7 @@ function orderBy(_sql,table,args) {
 }
 
 function where(_sql,args) {
-  let clauses = _.omit(args,'limit','offset','orderBy','where');
+  let clauses = _.omit(args,'limit','offset','orderBy','where','select');
 
   _.forEach(clauses,(value, key)=>{
     if(_.isEmpty(args.where)) args.where=[];
@@ -24,7 +24,7 @@ function where(_sql,args) {
   _.forEach(args.where, (clause)=>{
     let operator = clause.operator;
     if(operator != 'BETWEEN' && operator != 'IN')
-      clause.value = clause.value.toString();
+      clause.value = clause.value==undefined ? clause.value : clause.value.toString();
     _sql.where(_.snakeCase(clause.column), operator , clause.value);
   });
   return _sql;
@@ -40,11 +40,11 @@ function from(_sql,table) {
 Retorna um unico registro
 **/
 function first(table,args) {
-  return from(where(orderBy(limit(db,args),table,args),args),table).first();
+  return from(where(orderBy(limit(db,args),table,args),args),table).first( _.map(args.select,_.snakeCase));
 }
 
 function all(table,args) {
-  return from(where(orderBy(limit(db,args),table,args),args),table).select();
+  return from(where(orderBy(limit(db,args),table,args),args),table).select(_.map(args.select,_.snakeCase));
 }
 
 function count(table,args) {
