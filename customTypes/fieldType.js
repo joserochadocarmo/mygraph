@@ -1,23 +1,30 @@
 import {
+  GraphQLInt,
   GraphQLString,
-  GraphQLInt
+  GraphQLNonNull,
+  GraphQLList
 } from 'graphql';
-import {Query} from '../model';
+import {orderByType} from './orderByType';
+import {whereType} from './whereType';
 
-module.exports = {
-  fields: {
-    count: {
-      args: {
-        column: {
-          description: 'Informe a coluna a ser contada - Ex: column:"cpf"',
-          type: GraphQLString
-        }
-      },
-      type: GraphQLInt,
-      resolve (aluno,args,ast) {
-        console.log(ast);
-        return Query.count(tables.Curso,args)
-      }
+module.exports = function () {
+  return {
+    id: {
+      type: GraphQLInt
+    },
+    limit: {
+      type: GraphQLInt
+    },
+    offset: {
+        type: GraphQLInt
+    },
+    orderBy: {
+        description: 'Ex: orderBy:[{column:"nome",direction:DESC}]',
+        type: new GraphQLList(orderByType)
+    },
+    where: {
+        description: 'Ex: where:[{column:"nome",operator:"=",value="José Pereira"}]',
+        type: new GraphQLList(whereType)
     }
-  }
-};
+  };
+}

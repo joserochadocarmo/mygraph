@@ -40,11 +40,13 @@ function from(_sql,table) {
 Retorna um unico registro
 **/
 function first(table,args) {
-  return from(where(orderBy(limit(db,args),table,args),args),table).first( _.map(args.select,_.snakeCase));
+  let select = _.remove(args.select,'count');
+  return from(where(orderBy(limit(db,args),table,args),args),table).first(_.map(select,_.snakeCase));
 }
 
 function all(table,args) {
-  return from(where(orderBy(limit(db,args),table,args),args),table).select(_.map(args.select,_.snakeCase));
+  let select = _.remove(args.select,'count');
+  return from(where(orderBy(limit(db,args),table,args),args),table).select(_.map(select,_.snakeCase));
 }
 
 function count(table,args) {

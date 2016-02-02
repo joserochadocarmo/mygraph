@@ -8,12 +8,15 @@ import {
   GraphQLList,
   GraphQLNonNull
 } from 'graphql';
-import {orderByType} from './customTypes/orderByType';
-import {whereType} from './customTypes/whereType';
+//import {orderByType} from './customTypes/orderByType';
+// import {whereType} from './customTypes/whereType';
 import getFieldASTs from './customTypes/selectType';
 import {Query} from './model';
 import {tables} from './mapping';
-import myCache from './cache';
+//import myCache from './cache';
+import countType from './customTypes/countType';
+import fieldType from './customTypes/fieldType';
+import _ from 'lodash';
 
 const CursoType = new GraphQLObjectType({
   name: 'Curso',
@@ -32,34 +35,12 @@ const CursoType = new GraphQLObjectType({
           return curso.nome;
         }
       },
+      count: countType(tables.Curso),
       alunos: {
         type: new GraphQLList(AlunoType),
-        args: {
-          limit: {
-            type: GraphQLInt
-          },
-          offset: {
-              type: GraphQLInt
-          },
-          orderBy: {
-              description: 'Ex: orderBy:[{column:"nome",direction:DESC}]',
-              type: new GraphQLList(orderByType)
-          }
-        },
+        args: fieldType(),
         resolve (curso) {
           return Query.getAll(tables.Aluno,{[tables.Curso.idAttribute]: curso.id_curso});
-        }
-      },
-      count: {
-        args: {
-          column: {
-            description: 'Informe a coluna a ser contada - Ex: column:"cpf"',
-            type: GraphQLString
-          }
-        },
-        type: GraphQLInt,
-        resolve (aluno,args,ast) {
-          return Query.count(tables.Curso,args)
         }
       }
     };
@@ -77,6 +58,12 @@ const AlunoType = new GraphQLObjectType({
           return aluno.id_discente;
         }
       },
+      idPessoa: {
+        type: GraphQLInt,
+        resolve (aluno) {
+          return aluno.id_pessoa;
+        }
+      },
       matricula: {
         type: GraphQLInt,
         resolve (aluno) {
@@ -89,20 +76,10 @@ const AlunoType = new GraphQLObjectType({
           return aluno.ano_ingresso;
         }
       },
+      count: countType(tables.Aluno),
       curso: {
         type: CursoType,
-        args: {
-          limit: {
-            type: GraphQLInt
-          },
-          offset: {
-              type: GraphQLInt
-          },
-          orderBy: {
-              description: 'Ex: orderBy:[{column:"nome",direction:DESC}]',
-              type: new GraphQLList(orderByType)
-          }
-        },
+        args: fieldType(),
         resolve (aluno,args,info) {
           args[tables.Curso.idAttribute]= aluno.id_curso;
           args.select = getFieldASTs(info);
@@ -111,35 +88,11 @@ const AlunoType = new GraphQLObjectType({
       },
       pessoa: {
         type: PessoaType,
-        args: {
-          limit: {
-            type: GraphQLInt
-          },
-          offset: {
-              type: GraphQLInt
-          },
-          orderBy: {
-              description: 'Ex: orderBy:[{column:"nome",direction:DESC}]',
-              type: new GraphQLList(orderByType)
-          }
-        },
+        args: fieldType(),
         resolve (aluno,args,info) {
           args[tables.Pessoa.idAttribute]= aluno.id_pessoa;
           args.select = getFieldASTs(info);
           return Query.get(tables.Pessoa,args);
-        }
-      },
-      count: {
-        args: {
-          column: {
-            description: 'Informe a coluna a ser contada - Ex: column:"cpf"',
-            type: GraphQLString
-          }
-        },
-        type: GraphQLInt,
-        resolve (aluno,args,ast) {
-          console.log(ast);
-          return Query.count(tables.Aluno,args)
         }
       }
     };
@@ -181,33 +134,13 @@ const PessoaType = new GraphQLObjectType({
           return pessoa.email;
         }
       },
+      count: countType(tables.Pessoa),
       aluno: {
         type: new GraphQLList(AlunoType),
-        resolve (pessoa) {
-          return Query.getAll(tables.Aluno,{[tables.Pessoa.idAttribute]: pessoa.id_pessoa});
-        }
-      },
-      count: {
-        args: {
-          column: {
-            description: 'Informe a coluna a ser contada - Ex: column:"cpf"',
-            type: GraphQLString
-          }
-        },
-        type: GraphQLInt,
-        resolve (aluno,args,ast) {
-          // return Query.count(tables.Pessoa,args);
-          // console.log(ast.operation.loc.source.body);
-          let countValueCache = myCache.get(ast.operation.loc.source.body);
-          if(countValueCache==undefined){
-            return Query.count(tables.Pessoa,args).then(value=>{
-              myCache.set(ast.operation.loc.source.body, value);
-              console.log("setcache"+ myCache);
-              return value;
-            });
-          }
-          console.log("getcache");
-          return countValueCache;
+        args: fieldType(),
+        resolve (pessoa,args) {
+          args[tables.Pessoa.idAttribute] = pessoa.id_pessoa;
+          return Query.getAll(tables.Aluno,args);
         }
       }
     };
@@ -221,52 +154,25 @@ const RootQuery = new GraphQLObjectType({
     return {
       pessoas: {
         type: new GraphQLList(PessoaType),
-        args: {
-          idPessoa: {
-            type: GraphQLInt
-          },
+        args: _.extend(fieldType(),{
           cpfCnpj: {
             type: GraphQLInt
-          },
-          limit: {
-            type: GraphQLInt
-          },
-          offset: {
-              type: GraphQLInt
-          },
-          orderBy: {
-              description: 'Ex: orderBy:[{column:"nome",direction:DESC}]',
-              type: new GraphQLList(orderByType)
-          },
-          where: {
-              description: 'Ex: where:[{column:"nome",operator:"=",value="José Pereira"}]',
-              type: new GraphQLList(whereType)
           }
-        },
+        }),
         resolve (root, args, ast) {
           return Query.getAll(tables.Pessoa,args);
         }
       },
       alunos: {
-        args: {
+        type: new GraphQLList(AlunoType),
+        args: _.extend(fieldType(),{
           matricula: {
             type: GraphQLInt
           },
           anoIngresso: {
             type: GraphQLInt
-          },
-          limit: {
-            type: GraphQLInt
-          },
-          offset: {
-              type: GraphQLInt
-          },
-          orderBy: {
-              description: 'Ex: orderBy:[{column:"nome",direction:DESC}]',
-              type: new GraphQLList(orderByType)
           }
-        },
-        type: new GraphQLList(AlunoType),
+        }),
         resolve (root, args,info) {
           args.select = getFieldASTs(info);
           args.select.push(tables.Pessoa.idAttribute);
@@ -275,22 +181,8 @@ const RootQuery = new GraphQLObjectType({
         }
       },
       cursos: {
-        args: {
-          idCurso: {
-            type: GraphQLInt
-          },
-          limit: {
-            type: GraphQLInt
-          },
-          offset: {
-              type: GraphQLInt
-          },
-          orderBy: {
-              description: 'Ex: orderBy:[{column:"nome",direction:DESC}]',
-              type: new GraphQLList(orderByType)
-          }
-        },
         type: new GraphQLList(CursoType),
+        args: fieldType(),
         resolve (root, args) {
           return Query.getAll(tables.Curso,args);
         }
