@@ -2,11 +2,11 @@ import Sequelize from 'sequelize';
 import _ from 'lodash';
 
 const Conn = new Sequelize(
-  'treinamento_sigaa_201601032000',
-  'sigaa',
-  'sigaa', {
+  'treinamento',
+  'teste',
+  'teste', {
     dialect: 'postgres',
-    host: '200.137.217.50',
+    host: '127.0.0.1',
     pool: {
       maxConnections: 5,
       maxIdleTime: 30
